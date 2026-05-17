@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 const STEPS = [
   {
@@ -89,4 +90,8 @@ export default function Onboarding({ onComplete }) {
       </div>
     </div>
   );
+}
+
+Onboarding.propTypes = {
+  onComplete: PropTypes.func.isRequired,
 }

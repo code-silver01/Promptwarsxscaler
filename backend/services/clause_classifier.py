@@ -62,7 +62,7 @@ async def classify_single_clause(clause: Clause) -> Clause:
         result = await call_gemini(
             prompt=clause.text,
             system_prompt=_CLASSIFICATION_SYSTEM_PROMPT,
-            model_name="gemini-2.5-flash",
+            model_name="gemini-1.5-flash",
             use_cache=True, temperature=0.2,
         )
         category_str = result.get("category", "AMBIGUOUS")
@@ -108,7 +108,7 @@ async def detect_contradictions(clauses: list[Clause]) -> list[dict]:
             prompt = f"Clause A: {ca.text}\n\nClause B: {cb.text}"
             result = await call_gemini(
                 prompt=prompt, system_prompt=_CONTRADICTION_SYSTEM_PROMPT,
-                model_name="gemini-2.5-flash", use_cache=True, temperature=0.2,
+                model_name="gemini-1.5-flash", use_cache=True, temperature=0.2,
             )
             if result.get("is_contradiction"):
                 contradictions.append({

@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
 /**
  * ConsequenceChain — 4-step visual flow for high-severity consequences.
@@ -45,4 +46,13 @@ export default function ConsequenceChain({ chain }) {
       </div>
     </div>
   )
+}
+
+ConsequenceChain.propTypes = {
+  chain: PropTypes.shape({
+    trigger_condition: PropTypes.string,
+    immediate_consequence: PropTypes.string,
+    downstream_impact: PropTypes.string,
+    worst_case_scenario: PropTypes.string,
+  }),
 }

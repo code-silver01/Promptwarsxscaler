@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
 /**
  * AdversarialDebate — Red/Blue/Verdict debate display.
@@ -115,4 +116,23 @@ export default function AdversarialDebate({ riskPosition, defensePosition, verdi
       )}
     </div>
   )
+}
+
+AdversarialDebate.propTypes = {
+  riskPosition: PropTypes.shape({
+    risk_position: PropTypes.string,
+    key_phrases: PropTypes.arrayOf(PropTypes.string),
+    worst_case: PropTypes.string,
+  }),
+  defensePosition: PropTypes.shape({
+    defense_position: PropTypes.string,
+    favorable_phrases: PropTypes.arrayOf(PropTypes.string),
+    best_case: PropTypes.string,
+  }),
+  verdict: PropTypes.shape({
+    verdict: PropTypes.string,
+    severity: PropTypes.oneOf(['HIGH', 'MEDIUM', 'LOW']),
+    confidence: PropTypes.number,
+    plain_english: PropTypes.string,
+  }),
 }

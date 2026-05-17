@@ -21,7 +21,7 @@ from backend.models.schemas import (
     Severity, StreamingClauseUpdate,
 )
 from backend.services.adversarial_engine import analyze_clause, should_analyze
-from backend.services.benchmark_rag import compare_clause_to_benchmark
+from backend.services.benchmark_rag import compare_clause_to_benchmark, batch_embed_clauses
 from backend.services.clause_classifier import (
     classify_clauses, detect_contradictions, detect_vague_qualifiers,
 )
@@ -33,6 +33,7 @@ from backend.services.risk_scorer import (
     calculate_aggregate_score, determine_risk_tier, score_clause,
 )
 from backend.utils.validators import validate_upload
+from backend.utils.gcs_client import upload_document, delete_document
 
 logger = logging.getLogger("lexguard.analyze_router")
 
@@ -69,6 +70,7 @@ def _progress_event(stage: str, percent: float) -> str:
 
 async def _process_single_clause(
     clause_report: ClauseReport,
+    clause_embedding: list[float] | None = None,
 ) -> ClauseReport:
     """Run adversarial analysis, benchmark, consequence, and negotiation.
 
@@ -104,7 +106,7 @@ async def _process_single_clause(
     if category:
         try:
             benchmark = await compare_clause_to_benchmark(
-                clause, category.value,
+                clause, category.value, clause_embedding,
             )
             clause_report.benchmark_comparison = benchmark
         except Exception as exc:
@@ -164,6 +166,9 @@ async def _stream_analysis(
     """
     start_time = time.time()
 
+    # Upload to GCS for temporary storage (non-blocking, best-effort)
+    gcs_uri = await upload_document(file_content, filename)
+
     # Stage 1: Extract clauses
     yield _progress_event("Extracting Clauses", 10)
     try:
@@ -201,22 +206,39 @@ async def _stream_analysis(
 
     # Stage 3-6: Process clauses (parallel in batches)
     total = len(clause_reports)
-    for idx, cr in enumerate(clause_reports):
-        try:
-            clause_reports[idx] = await _process_single_clause(cr)
-        except Exception as exc:
-            logger.error(json.dumps({
-                "service": "analyze_router",
-                "clause_id": cr.clause.id,
-                "error": str(exc),
-            }))
 
+    # Pre-compute all clause embeddings in one batch call
+    clause_embeddings = await batch_embed_clauses(clauses)
+
+    # Semaphore limits concurrent Gemini calls to avoid rate limits
+    semaphore = asyncio.Semaphore(5)
+
+    async def _process_with_semaphore(idx: int, cr: ClauseReport) -> tuple[int, ClauseReport]:
+        """Process a clause with concurrency control."""
+        async with semaphore:
+            try:
+                emb = clause_embeddings.get(cr.clause.id)
+                result = await _process_single_clause(cr, clause_embedding=emb)
+            except Exception as exc:
+                logger.error(json.dumps({
+                    "service": "analyze_router",
+                    "clause_id": cr.clause.id,
+                    "error": str(exc),
+                }))
+                result = cr
+            return idx, result
+
+    # Run all clauses in parallel
+    tasks = [_process_with_semaphore(i, cr) for i, cr in enumerate(clause_reports)]
+    results = await asyncio.gather(*tasks)
+
+    # Re-order results and stream them
+    for idx, processed_cr in sorted(results, key=lambda x: x[0]):
+        clause_reports[idx] = processed_cr
         progress = 40 + (idx / max(total, 1)) * 45
         yield _sse_event({
             "type": "clause_result",
-            "clause_report": clause_reports[idx].model_dump(
-                exclude_none=True, mode="json",
-            ),
+            "clause_report": clause_reports[idx].model_dump(exclude_none=True, mode="json"),
             "progress_percent": round(progress, 1),
         })
 
@@ -257,6 +279,10 @@ async def _stream_analysis(
         "report": report.model_dump(mode="json"),
         "progress_percent": 100,
     })
+
+    # Clean up GCS temp file
+    if gcs_uri:
+        await delete_document(gcs_uri)
 
 
 @router.post("/api/analyze")

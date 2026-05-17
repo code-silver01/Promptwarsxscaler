@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import ClauseCard from './ClauseCard.jsx'
 import CategoryHeatmap from './CategoryHeatmap.jsx'
 
@@ -131,4 +132,18 @@ export default function RiskDashboard({ report }) {
       </div>
     </div>
   )
+}
+
+RiskDashboard.propTypes = {
+  report: PropTypes.shape({
+    aggregate_risk_score: PropTypes.number,
+    risk_tier: PropTypes.string,
+    document_type: PropTypes.string,
+    total_clauses: PropTypes.number,
+    flagged_clauses: PropTypes.number,
+    score_breakdown: PropTypes.object,
+    contradictions: PropTypes.arrayOf(PropTypes.object),
+    category_heatmap: PropTypes.arrayOf(PropTypes.object),
+    clause_reports: PropTypes.arrayOf(PropTypes.object),
+  }),
 }

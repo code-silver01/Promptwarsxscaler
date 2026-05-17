@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
 const STAGES = [
   'Extracting Clauses',
@@ -109,4 +110,10 @@ export default function AnalysisProgress({ stage, percent, clauseResults }) {
       )}
     </section>
   )
+}
+
+AnalysisProgress.propTypes = {
+  stage: PropTypes.string,
+  percent: PropTypes.number,
+  clauseResults: PropTypes.arrayOf(PropTypes.object),
 }

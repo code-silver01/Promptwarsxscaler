@@ -138,36 +138,6 @@ def extract_text_from_docx(file_content: bytes) -> str:
         raise ValueError(f"Failed to extract text from DOCX: {exc}")
 
 
-def extract_text_from_image(file_content: bytes, extension: str) -> str:
-    """
-    Extract text from an image using Gemini's multimodal OCR.
-    """
-    from google import genai
-    from google.genai import types
-    import os
-    try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        mime_type = "image/jpeg" if extension in ["jpg", "jpeg"] else f"image/{extension}"
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[
-                types.Part.from_bytes(data=file_content, mime_type=mime_type),
-                "Extract all text from this contract document. Preserve headings, lists, paragraphs, and structure exactly as they appear. Do not summarize or add markdown, just return the text with newlines separating sections."
-            ]
-        )
-        
-        logger.info(json.dumps({
-            "service": "document_parser", "operation": "extract_text_from_image",
-            "text_length": len(response.text or ""), "status": "success",
-        }))
-        return response.text or ""
-    except Exception as exc:
-        logger.error(json.dumps({
-            "service": "document_parser", "operation": "extract_text_from_image",
-            "status": "error", "error": str(exc),
-        }))
-        raise ValueError(f"Failed to extract text from image: {exc}")
-
 
 
 def _detect_section_heading(line: str) -> Optional[str]:
@@ -349,8 +319,7 @@ def parse_document(
         raw_text = extract_text_from_pdf(file_content)
     elif extension == "docx":
         raw_text = extract_text_from_docx(file_content)
-    elif extension in ["png", "jpg", "jpeg", "webp"]:
-        raw_text = extract_text_from_image(file_content, extension)
+
     else:
         raise ValueError(f"Unsupported file type: .{extension}")
 

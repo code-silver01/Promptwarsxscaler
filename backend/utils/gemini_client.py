@@ -197,7 +197,7 @@ def extract_json_from_response(text: str) -> dict:
 async def call_gemini(
     prompt: str,
     system_prompt: str,
-    model_name: str = "gemini-2.5-pro",
+    model_name: str = "gemini-1.5-pro",
     use_cache: bool = False,
     temperature: float = 0.3,
 ) -> dict:
@@ -297,7 +297,7 @@ async def call_gemini(
 
 async def call_gemini_batch(
     prompts: list[tuple[str, str]],
-    model_name: str = "gemini-2.5-flash",
+    model_name: str = "gemini-1.5-flash",
     use_cache: bool = True,
     temperature: float = 0.2,
     max_concurrency: int = 5,

@@ -156,20 +156,18 @@ class TestAdversarialPipeline:
         mock_risk_response: dict, mock_defense_response: dict,
         mock_verdict_response: dict,
     ):
-        """Risk and Defense should run in parallel (total < 2x single)."""
-        call_count = 0
+        """Risk and Defense agents should run concurrently."""
+        responses = [mock_risk_response, mock_defense_response, mock_verdict_response]
+        call_index = 0
 
-        async def mock_call(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            await asyncio.sleep(0.05)  # Simulate API latency
-            if call_count <= 1:
-                return mock_risk_response
-            elif call_count <= 2:
-                return mock_defense_response
-            return mock_verdict_response
+        async def sequential_mock(*args, **kwargs):
+            nonlocal call_index
+            resp = responses[min(call_index, len(responses) - 1)]
+            call_index += 1
+            await asyncio.sleep(0.05)
+            return resp
 
-        mock_gemini.side_effect = mock_call
+        mock_gemini.side_effect = sequential_mock
 
         start = time.time()
         risk, defense, verdict = await analyze_clause(test_clause)
@@ -178,8 +176,9 @@ class TestAdversarialPipeline:
         assert risk is not None
         assert defense is not None
         assert verdict is not None
-        # Parallel execution: should be under 0.3s not 0.15s * 3
-        assert elapsed < 0.5
+        # Parallel: risk + defense run concurrently (~0.05s), then verdict (~0.05s) = ~0.1s total
+        # Sequential would be ~0.15s. Allow generous bound.
+        assert elapsed < 0.3
 
     def test_should_analyze_ip_clause(self, test_clause: Clause):
         """IP_TRANSFER clause should be analyzed."""

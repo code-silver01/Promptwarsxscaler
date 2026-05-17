@@ -49,7 +49,7 @@ async def generate_consequence_chain(
         result = await call_gemini(
             prompt=prompt,
             system_prompt=_CONSEQUENCE_SYSTEM_PROMPT,
-            model_name="gemini-2.5-pro",
+            model_name="gemini-1.5-pro",
             temperature=0.4,
         )
 

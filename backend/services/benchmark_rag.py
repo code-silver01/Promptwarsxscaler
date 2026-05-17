@@ -72,9 +72,27 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     return float(dot / (norm_a * norm_b))
 
 
+async def batch_embed_clauses(clauses: list[Clause]) -> dict[str, list[float]]:
+    """
+    Compute embeddings for all clauses in a single Vertex AI batch call.
+    
+    Args:
+        clauses: All clauses from the document.
+        
+    Returns:
+        Dict mapping clause_id to embedding vector.
+    """
+    if not clauses:
+        return {}
+    texts = [c.text for c in clauses]
+    embeddings = await get_embeddings_batch(texts)
+    return {clause.id: emb for clause, emb in zip(clauses, embeddings)}
+
+
 async def compare_clause_to_benchmark(
     clause: Clause,
     category: str,
+    clause_embedding: list[float] | None = None,
 ) -> BenchmarkComparison:
     """Compare a clause against benchmark corpus for its category.
 
@@ -91,11 +109,14 @@ async def compare_clause_to_benchmark(
             return _default_comparison()
 
         benchmark_texts = [b.get("text", "") for b in benchmarks]
-        all_texts = [clause.text] + benchmark_texts
-        embeddings = await get_embeddings_batch(all_texts)
-
-        clause_embedding = embeddings[0]
-        benchmark_embeddings = embeddings[1:]
+        
+        if clause_embedding is None:
+            all_texts = [clause.text] + benchmark_texts
+            embeddings = await get_embeddings_batch(all_texts)
+            clause_embedding = embeddings[0]
+            benchmark_embeddings = embeddings[1:]
+        else:
+            benchmark_embeddings = await get_embeddings_batch(benchmark_texts)
 
         similarities = [
             cosine_similarity(clause_embedding, be)

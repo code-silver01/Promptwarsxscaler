@@ -76,6 +76,7 @@ class TestVagueQualifiers:
         qualifiers = detect_vague_qualifiers(ip_clause.text)
         # IP clause has no vague qualifiers
         assert isinstance(qualifiers, list)
+        assert len(qualifiers) == 0
 
 
 class TestClassification:

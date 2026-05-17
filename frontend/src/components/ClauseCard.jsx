@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import PropTypes from 'prop-types'
 import AdversarialDebate from './AdversarialDebate.jsx'
 import ConsequenceChain from './ConsequenceChain.jsx'
 import NegotiationSuggest from './NegotiationSuggest.jsx'
@@ -152,4 +153,27 @@ export default function ClauseCard({ clauseReport, index }) {
       )}
     </article>
   )
+}
+
+ClauseCard.propTypes = {
+  clauseReport: PropTypes.shape({
+    clause: PropTypes.shape({
+      id: PropTypes.string,
+      text: PropTypes.string,
+      section: PropTypes.string,
+    }),
+    category: PropTypes.string,
+    severity: PropTypes.oneOf(['HIGH', 'MEDIUM', 'LOW']),
+    confidence: PropTypes.number,
+    risk_position: PropTypes.object,
+    defense_position: PropTypes.object,
+    verdict: PropTypes.object,
+    plain_english: PropTypes.string,
+    consequence_chain: PropTypes.object,
+    benchmark_comparison: PropTypes.object,
+    negotiation_suggestion: PropTypes.object,
+    score_breakdown: PropTypes.object,
+    vague_qualifiers: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+  index: PropTypes.number.isRequired,
 }

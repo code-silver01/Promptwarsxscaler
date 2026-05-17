@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
 /**
  * CategoryHeatmap — Horizontal bar chart showing flagged clause count per category.
@@ -63,4 +64,11 @@ export default function CategoryHeatmap({ heatmap }) {
       </div>
     </div>
   )
+}
+
+CategoryHeatmap.propTypes = {
+  heatmap: PropTypes.arrayOf(PropTypes.shape({
+    category: PropTypes.string,
+    count: PropTypes.number,
+  })),
 }

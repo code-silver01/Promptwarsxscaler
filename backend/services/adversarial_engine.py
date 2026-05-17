@@ -83,7 +83,7 @@ async def run_risk_agent(clause_text: str) -> RiskAgentOutput:
     """
     result = await call_gemini(
         prompt=clause_text, system_prompt=_RISK_AGENT_PROMPT,
-        model_name="gemini-2.5-pro", temperature=0.4,
+        model_name="gemini-1.5-pro", temperature=0.4,
     )
     return RiskAgentOutput(
         risk_position=result.get("risk_position", ""),
@@ -106,7 +106,7 @@ async def run_defense_agent(clause_text: str) -> DefenseAgentOutput:
     """
     result = await call_gemini(
         prompt=clause_text, system_prompt=_DEFENSE_AGENT_PROMPT,
-        model_name="gemini-2.5-pro", temperature=0.4,
+        model_name="gemini-1.5-pro", temperature=0.4,
     )
     return DefenseAgentOutput(
         defense_position=result.get("defense_position", ""),
@@ -141,7 +141,7 @@ async def run_verdict_agent(
     )
     result = await call_gemini(
         prompt=combined_prompt, system_prompt=_VERDICT_AGENT_PROMPT,
-        model_name="gemini-2.5-pro", temperature=0.3,
+        model_name="gemini-1.5-pro", temperature=0.3,
     )
     severity_str = result.get("severity", "MEDIUM").upper()
     try:
@@ -151,11 +151,28 @@ async def run_verdict_agent(
 
     confidence = max(0.0, min(1.0, float(result.get("confidence", 0.5))))
 
+    # Generate a truly plain-English version via a separate fast call
+    _PLAIN_ENGLISH_PROMPT = (
+        "Explain this legal finding to a non-lawyer friend in 2-3 casual sentences. "
+        "No legal jargon. No bullet points. Just talk like a friend warning another friend. "
+        'Return ONLY a JSON object: {"plain_english": "..."}'
+    )
+    try:
+        plain_result = await call_gemini(
+            prompt=f"Legal finding: {result.get('verdict', '')}\nFor clause: {clause_text[:300]}",
+            system_prompt=_PLAIN_ENGLISH_PROMPT,
+            model_name="gemini-1.5-flash",
+            temperature=0.5,
+        )
+        plain_english = plain_result.get("plain_english", result.get("plain_english", ""))
+    except Exception:
+        plain_english = result.get("plain_english", "")
+
     return VerdictAgentOutput(
         verdict=result.get("verdict", ""),
         severity=severity, confidence=confidence,
         risk_category=result.get("risk_category", ""),
-        plain_english=result.get("plain_english", ""),
+        plain_english=plain_english,
     )
 
 

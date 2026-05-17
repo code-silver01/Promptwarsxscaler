@@ -1,19 +1,24 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * SplashScreen - Cinematic intro for LexGuard One
- * Auto-dismisses after 3 seconds.
+ * Auto-dismisses after 1.5 seconds. Click anywhere to skip.
  */
 export default function SplashScreen({ onComplete }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onComplete();
-    }, 3000);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-lexguard-bg flex flex-col items-center justify-center z-50 overflow-hidden">
+    <div
+      className="fixed inset-0 bg-lexguard-bg flex flex-col items-center justify-center z-50 overflow-hidden"
+      onClick={onComplete}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Background glowing effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-600/30 blur-[80px] rounded-full pointer-events-none" />
@@ -53,4 +58,8 @@ export default function SplashScreen({ onComplete }) {
       `}</style>
     </div>
   );
+}
+
+SplashScreen.propTypes = {
+  onComplete: PropTypes.func.isRequired,
 }

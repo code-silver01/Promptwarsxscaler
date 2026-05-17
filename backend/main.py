@@ -62,6 +62,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             "warning": str(exc),
         }))
 
+    # Wire Google Cloud Logging when running on GCP
+    try:
+        import google.cloud.logging as gcp_logging
+        if os.environ.get("GOOGLE_CLOUD_PROJECT"):
+            gcp_client = gcp_logging.Client()
+            gcp_client.setup_logging()
+            logger.info(json.dumps({
+                "service": "main", "operation": "cloud_logging",
+                "status": "attached",
+            }))
+    except Exception as gcp_exc:
+        logger.warning(json.dumps({
+            "service": "main", "operation": "cloud_logging",
+            "warning": f"Cloud Logging not attached: {gcp_exc}",
+        }))
+
     logger.info(json.dumps({
         "service": "main", "operation": "startup",
         "status": "ready", "version": "1.0.0",

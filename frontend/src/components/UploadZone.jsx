@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react'
+import PropTypes from 'prop-types'
 
 /**
  * UploadZone — Drag-and-drop file upload with keyboard accessibility.
@@ -176,4 +177,8 @@ export default function UploadZone({ onAnalyze }) {
       </div>
     </section>
   )
+}
+
+UploadZone.propTypes = {
+  onAnalyze: PropTypes.func.isRequired,
 }
