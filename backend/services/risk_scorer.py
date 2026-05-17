@@ -101,8 +101,9 @@ def calculate_aggregate_score(
         return 0.0, breakdown
 
     total = sum(cs.final_score for cs in clause_scores)
-    # Max possible: each clause at HIGH severity, max weight, max deviation
-    max_possible = len(clause_scores) * 3.0 * 1.5 * 1.5
+    # Max possible: each clause at HIGH severity (3.0), max weight (1.5), max deviation (1.5)
+    # 3.0 * 1.5 * 1.5 = 6.75 per clause
+    max_possible = len(clause_scores) * 6.75
     raw_pct = (total / max_possible) * 100 if max_possible > 0 else 0
     clamped = min(100.0, max(0.0, raw_pct))
 
