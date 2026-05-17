@@ -13,8 +13,12 @@ logger = logging.getLogger("lexguard.gcs_client")
 _gcs_client = None
 
 
-def _get_gcs_client():
-    """Get or create the GCS client singleton."""
+def _get_gcs_client() -> "storage.Client":
+    """Get or create the GCS client singleton.
+
+    Returns:
+        Initialized Google Cloud Storage client.
+    """
     global _gcs_client
     if _gcs_client is None:
         from google.cloud import storage
@@ -80,6 +84,13 @@ async def delete_document(gcs_uri: str) -> None:
     try:
         import asyncio
         parts = gcs_uri[5:].split("/", 1)
+        if len(parts) < 2:
+            logger.warning(json.dumps({
+                "service": "gcs_client", "operation": "delete_document",
+                "uri": gcs_uri, "status": "skipped",
+                "reason": "Malformed GCS URI — missing blob path",
+            }))
+            return
         bucket_name, blob_name = parts[0], parts[1]
 
         def _delete():

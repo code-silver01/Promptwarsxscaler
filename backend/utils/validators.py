@@ -27,6 +27,12 @@ ALLOWED_MIME_TYPES: set[str] = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
+# Extension to expected MIME type mapping for cross-validation
+_EXTENSION_TO_MIME: dict[str, str] = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
 # HTML/script tag pattern for sanitization
 _HTML_TAG_PATTERN: re.Pattern = re.compile(r"<[^>]+>", re.DOTALL)
 _SCRIPT_PATTERN: re.Pattern = re.compile(
@@ -79,6 +85,10 @@ def validate_file_type(
     """
     Validate file type by both extension and magic bytes.
 
+    Ensures the file extension matches the detected MIME type from the
+    file header, preventing extension spoofing attacks (e.g. a DOCX
+    file renamed to .pdf).
+
     Args:
         filename: Original filename with extension.
         file_header: First 8+ bytes of file content for MIME detection.
@@ -98,9 +108,18 @@ def validate_file_type(
     detected_mime = detect_mime_type(file_header)
     if detected_mime is None:
         return False, "Unable to detect file type from content"
+
     if detected_mime not in ALLOWED_MIME_TYPES:
         return False, (
             f"File content type '{detected_mime}' is not supported"
+        )
+
+    # Cross-check: extension must match the detected MIME type to prevent spoofing
+    expected_mime = _EXTENSION_TO_MIME.get(extension)
+    if expected_mime and detected_mime != expected_mime:
+        return False, (
+            f"File extension '.{extension}' does not match detected "
+            f"content type '{detected_mime}'"
         )
 
     return True, ""

@@ -192,3 +192,66 @@ class TestAdversarialPipeline:
         )
         # AMBIGUOUS is not in ADVERSARIAL_CATEGORIES
         assert should_analyze(clause) is False
+
+    def test_should_not_analyze_none_category(self):
+        """Clause with None category should not be analyzed."""
+        clause = Clause(
+            id="test", text="test text with enough length to pass",
+            category=None,
+        )
+        assert should_analyze(clause) is False
+
+    def test_should_analyze_all_adversarial_categories(self):
+        """All categories in ADVERSARIAL_CATEGORIES should trigger analysis."""
+        from backend.services.adversarial_engine import ADVERSARIAL_CATEGORIES
+        for category in ADVERSARIAL_CATEGORIES:
+            clause = Clause(
+                id="test", text="test text", section="test", category=category
+            )
+            assert should_analyze(clause) is True, f"{category} should trigger analysis"
+
+    @pytest.mark.asyncio
+    @patch("backend.services.adversarial_engine.call_gemini")
+    async def test_invalid_severity_falls_back_to_medium(
+        self, mock_gemini: AsyncMock
+    ):
+        """Invalid severity string from LLM should fall back to MEDIUM."""
+        mock_gemini.return_value = {
+            "verdict": "test verdict",
+            "severity": "INVALID_SEVERITY",
+            "confidence": 0.7,
+            "risk_category": "IP_TRANSFER",
+            "plain_english": "test plain english",
+        }
+        from backend.models.schemas import RiskAgentOutput, DefenseAgentOutput
+        risk = RiskAgentOutput(
+            risk_position="test", key_phrases=[], worst_case="test",
+        )
+        defense = DefenseAgentOutput(
+            defense_position="test", favorable_phrases=[], best_case="test",
+        )
+        result = await run_verdict_agent("test clause", risk, defense)
+        assert result.severity == Severity.MEDIUM
+
+    @pytest.mark.asyncio
+    @patch("backend.services.adversarial_engine.call_gemini")
+    async def test_confidence_clamped_to_valid_range(
+        self, mock_gemini: AsyncMock
+    ):
+        """Confidence values outside 0-1 should be clamped."""
+        mock_gemini.return_value = {
+            "verdict": "test",
+            "severity": "HIGH",
+            "confidence": 1.5,  # Out of range
+            "risk_category": "IP_TRANSFER",
+            "plain_english": "test",
+        }
+        from backend.models.schemas import RiskAgentOutput, DefenseAgentOutput
+        risk = RiskAgentOutput(
+            risk_position="test", key_phrases=[], worst_case="test",
+        )
+        defense = DefenseAgentOutput(
+            defense_position="test", favorable_phrases=[], best_case="test",
+        )
+        result = await run_verdict_agent("test clause", risk, defense)
+        assert 0.0 <= result.confidence <= 1.0

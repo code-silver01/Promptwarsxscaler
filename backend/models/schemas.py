@@ -78,6 +78,10 @@ class RiskAgentOutput(BaseModel):
     worst_case: str = Field(
         ..., description="Worst-case scenario for the signer"
     )
+    reasoning: str = Field(
+        default="",
+        description="Step-by-step reasoning process of the Risk Agent",
+    )
 
 
 class DefenseAgentOutput(BaseModel):
@@ -92,6 +96,10 @@ class DefenseAgentOutput(BaseModel):
     )
     best_case: str = Field(
         ..., description="Best-case scenario for the signer"
+    )
+    reasoning: str = Field(
+        default="",
+        description="Step-by-step reasoning process of the Defense Agent",
     )
 
 
@@ -108,6 +116,10 @@ class VerdictAgentOutput(BaseModel):
     )
     plain_english: str = Field(
         ..., description="Plain English explanation in 2–3 sentences"
+    )
+    reasoning: str = Field(
+        default="",
+        description="Step-by-step reasoning process of the Verdict Agent",
     )
 
 

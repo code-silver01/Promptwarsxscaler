@@ -95,3 +95,55 @@ class TestRiskTiers:
         score, breakdown = calculate_aggregate_score([])
         assert score == 0.0
         assert breakdown.clause_count == 0
+
+    def test_score_clamped_at_100(self):
+        """Aggregate score should never exceed 100."""
+        # Create many HIGH severity, max weight, max deviation clauses
+        breakdowns = [
+            score_clause(Severity.HIGH, ClauseCategory.IP_TRANSFER, 100.0)
+            for _ in range(100)
+        ]
+        score, _ = calculate_aggregate_score(breakdowns)
+        assert score <= 100.0
+
+    def test_score_clamped_at_zero(self):
+        """Aggregate score should never be negative."""
+        breakdown = score_clause(Severity.LOW, ClauseCategory.AMBIGUOUS, 0.0)
+        score, _ = calculate_aggregate_score([breakdown])
+        assert score >= 0.0
+
+    def test_unknown_category_defaults_to_weight_one(self):
+        """Unknown category should use default weight of 1.0."""
+        # AMBIGUOUS has weight 1.0
+        breakdown = score_clause(Severity.HIGH, ClauseCategory.AMBIGUOUS, 50.0)
+        assert breakdown.category_weight == 1.0
+
+    def test_aggregate_breakdown_clause_count_correct(self):
+        """AggregateScoreBreakdown should report correct clause count."""
+        breakdowns = [
+            score_clause(Severity.HIGH, ClauseCategory.IP_TRANSFER, 50.0),
+            score_clause(Severity.MEDIUM, ClauseCategory.NON_COMPETE, 50.0),
+            score_clause(Severity.LOW, ClauseCategory.TERMINATION, 50.0),
+        ]
+        _, breakdown = calculate_aggregate_score(breakdowns)
+        assert breakdown.clause_count == 3
+
+    def test_risk_tier_boundary_exactly_25_is_low(self):
+        """Score of exactly 25 should be LOW tier."""
+        assert determine_risk_tier(25.0) == RiskTier.LOW
+
+    def test_risk_tier_boundary_exactly_50_is_moderate(self):
+        """Score of exactly 50 should be MODERATE tier."""
+        assert determine_risk_tier(50.0) == RiskTier.MODERATE
+
+    def test_risk_tier_boundary_exactly_75_is_high(self):
+        """Score of exactly 75 should be HIGH tier."""
+        assert determine_risk_tier(75.0) == RiskTier.HIGH
+
+    def test_risk_tier_score_zero_is_low(self):
+        """Score of 0 should be LOW tier."""
+        assert determine_risk_tier(0.0) == RiskTier.LOW
+
+    def test_risk_tier_score_100_is_critical(self):
+        """Score of 100 should be CRITICAL tier."""
+        assert determine_risk_tier(100.0) == RiskTier.CRITICAL

@@ -154,3 +154,54 @@ class TestFileValidation:
         """Zero byte file should fail."""
         is_valid, msg = validate_upload("test.pdf", 0, b"")
         assert not is_valid
+
+
+class TestDocumentParserEdgeCases:
+    """Additional edge case tests for the document parser."""
+
+    def test_docx_clause_ids_are_unique(self):
+        """All extracted clause IDs should be unique."""
+        docx_bytes = _create_minimal_docx()
+        clauses = parse_document(docx_bytes, "test.docx")
+        ids = [c.id for c in clauses]
+        assert len(ids) == len(set(ids))
+
+    def test_docx_clause_text_not_empty(self):
+        """All extracted clauses should have non-empty text."""
+        docx_bytes = _create_minimal_docx()
+        clauses = parse_document(docx_bytes, "test.docx")
+        assert all(len(c.text.strip()) > 0 for c in clauses)
+
+    def test_docx_clause_has_raw_span(self):
+        """All extracted clauses should have a raw_span with two elements."""
+        docx_bytes = _create_minimal_docx()
+        clauses = parse_document(docx_bytes, "test.docx")
+        assert all(len(c.raw_span) == 2 for c in clauses)
+
+    def test_docx_clause_section_is_string(self):
+        """All extracted clauses should have a string section."""
+        docx_bytes = _create_minimal_docx()
+        clauses = parse_document(docx_bytes, "test.docx")
+        assert all(isinstance(c.section, str) for c in clauses)
+
+    def test_unsupported_extension_case_insensitive(self):
+        """Unsupported extension check should be case-insensitive."""
+        with pytest.raises(ValueError, match="Unsupported"):
+            parse_document(b"some content", "test.TXT")
+
+    def test_sanitize_text_strips_html_from_clauses(self):
+        """Extracted clause text should not contain HTML tags."""
+        from docx import Document
+        import io
+        doc = Document()
+        doc.add_paragraph(
+            "The employee agrees to perform all duties as assigned by "
+            "the Company including but not limited to software development "
+            "and testing tasks as required by management throughout employment."
+        )
+        buf = io.BytesIO()
+        doc.save(buf)
+        clauses = parse_document(buf.getvalue(), "test.docx")
+        for clause in clauses:
+            assert "<" not in clause.text
+            assert ">" not in clause.text

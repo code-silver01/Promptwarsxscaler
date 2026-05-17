@@ -33,7 +33,8 @@ _RISK_AGENT_PROMPT: str = (
     "You are a strict legal adversary. Interpret the following contract clause "
     "in the worst possible way for the person signing it. Identify every way "
     "this clause could be exploited against them. Be specific. Reference exact phrases. "
-    'Return JSON: {"risk_position": "...", "key_phrases": [...], "worst_case": "..."}. '
+    'Return JSON: {"risk_position": "...", "key_phrases": [...], "worst_case": "...", '
+    '"reasoning": "step-by-step explanation of your analysis"}. '
     "Return only JSON."
 )
 
@@ -41,7 +42,8 @@ _DEFENSE_AGENT_PROMPT: str = (
     "You are a legal defense counsel. Interpret the following contract clause "
     "in the most favorable way for the person signing it. Find every reasonable "
     "interpretation that protects their interests. Reference exact phrases. "
-    'Return JSON: {"defense_position": "...", "favorable_phrases": [...], "best_case": "..."}. '
+    'Return JSON: {"defense_position": "...", "favorable_phrases": [...], "best_case": "...", '
+    '"reasoning": "step-by-step explanation of your analysis"}. '
     "Return only JSON."
 )
 
@@ -51,7 +53,8 @@ _VERDICT_AGENT_PROMPT: str = (
     "(HIGH/MEDIUM/LOW), a confidence score (0.0-1.0), and explain in plain English "
     "in 2-3 sentences. Return only JSON: "
     '{"verdict": "...", "severity": "HIGH|MEDIUM|LOW", "confidence": 0.0, '
-    '"risk_category": "...", "plain_english": "..."}'
+    '"risk_category": "...", "plain_english": "...", '
+    '"reasoning": "step-by-step explanation of how you weighed both perspectives"}'
 )
 
 
@@ -89,6 +92,7 @@ async def run_risk_agent(clause_text: str) -> RiskAgentOutput:
         risk_position=result.get("risk_position", ""),
         key_phrases=result.get("key_phrases", []),
         worst_case=result.get("worst_case", ""),
+        reasoning=result.get("reasoning", ""),
     )
 
 
@@ -112,6 +116,7 @@ async def run_defense_agent(clause_text: str) -> DefenseAgentOutput:
         defense_position=result.get("defense_position", ""),
         favorable_phrases=result.get("favorable_phrases", []),
         best_case=result.get("best_case", ""),
+        reasoning=result.get("reasoning", ""),
     )
 
 
@@ -173,6 +178,7 @@ async def run_verdict_agent(
         severity=severity, confidence=confidence,
         risk_category=result.get("risk_category", ""),
         plain_english=plain_english,
+        reasoning=result.get("reasoning", ""),
     )
 
 

@@ -40,6 +40,9 @@ def detect_document_type(clauses: list[ClauseReport]) -> str:
     Returns:
         Detected document type string.
     """
+    if not clauses:
+        return "Legal Agreement"
+
     all_text = " ".join(
         cr.clause.text.lower() for cr in clauses
     )
@@ -48,7 +51,7 @@ def detect_document_type(clauses: list[ClauseReport]) -> str:
         score = sum(1 for kw in keywords if kw in all_text)
         scores[doc_type] = score
 
-    best_type = max(scores, key=scores.get)  # type: ignore
+    best_type = max(scores, key=lambda k: scores[k])
     if scores[best_type] == 0:
         return "Legal Agreement"
     return best_type
